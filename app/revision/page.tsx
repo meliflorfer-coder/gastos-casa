@@ -246,7 +246,7 @@ function RevisionContent() {
                       <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full whitespace-nowrap">{t.card}</span>
                     </td>
                     <td className="px-3 py-2.5 max-w-xs">
-                      {editingCell?.id === t.id && editingCell.field === 'description' ? (
+                      {editingCell?.id === t.id && editingCell?.field === 'description' ? (
                         <input
                           autoFocus
                           value={editValue}
@@ -272,7 +272,7 @@ function RevisionContent() {
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-right font-medium text-gray-900 whitespace-nowrap">
-                      {editingCell?.id === t.id && editingCell.field === 'amount_ars' ? (
+                      {editingCell?.id === t.id && editingCell?.field === 'amount_ars' ? (
                         <input
                           autoFocus
                           type="number"
