@@ -1,4 +1,4 @@
-export type Assignment = 'ambos' | 'fede' | 'meli' | 'ignorar'
+export type Assignment = 'ambos' | 'fede' | 'meli' | 'ignorar' | 'familia_meli'
 
 export const CATEGORIES = [
   '',

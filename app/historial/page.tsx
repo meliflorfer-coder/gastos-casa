@@ -10,6 +10,7 @@ interface MonthRow {
   meli: number
   shared: number
   count: number
+  status?: string
 }
 
 export default function HistorialPage() {
@@ -18,27 +19,31 @@ export default function HistorialPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/transactions?all=1')
-      .then(r => r.json())
-      .then((data: any[]) => {
-        const map = new Map<string, MonthRow>()
-        for (const t of data) {
-          if (!t.include || t.assignment === 'ignorar') continue
-          if (!map.has(t.month)) {
-            map.set(t.month, { month: t.month, total: 0, fede: 0, meli: 0, shared: 0, count: 0 })
-          }
-          const row = map.get(t.month)!
-          row.count++
-          const ars = t.amount_ars || 0
-          if (t.assignment === 'fede') row.fede += ars
-          else if (t.assignment === 'meli') row.meli += ars
-          else if (t.assignment === 'ambos') row.shared += ars
-          row.total += ars
+    Promise.all([
+      fetch('/api/transactions?all=1').then(r => r.json()),
+      fetch('/api/months').then(r => r.json()),
+    ]).then(([data, monthsData]: [any[], any[]]) => {
+      const statusMap = new Map<string, string>((monthsData || []).map((m: any) => [m.month, m.status]))
+      const map = new Map<string, MonthRow>()
+      for (const t of data) {
+        if (!t.include || t.assignment === 'ignorar' || t.assignment === 'familia_meli') continue
+        if (!map.has(t.month)) {
+          map.set(t.month, { month: t.month, total: 0, fede: 0, meli: 0, shared: 0, count: 0 })
         }
-        const sorted = Array.from(map.values()).sort((a, b) => b.month.localeCompare(a.month))
-        setRows(sorted)
-        setLoading(false)
-      })
+        const row = map.get(t.month)!
+        row.count++
+        const ars = t.amount_ars || 0
+        if (t.assignment === 'fede') row.fede += ars
+        else if (t.assignment === 'meli') row.meli += ars
+        else if (t.assignment === 'ambos') row.shared += ars
+        row.total += ars
+      }
+      const sorted = Array.from(map.values())
+        .sort((a, b) => b.month.localeCompare(a.month))
+        .map(r => ({ ...r, status: statusMap.get(r.month) || 'open' }))
+      setRows(sorted)
+      setLoading(false)
+    })
   }, [])
 
   const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`
@@ -83,6 +88,7 @@ export default function HistorialPage() {
                 <th className="px-5 py-3 text-right font-medium text-purple-700">Meli</th>
                 <th className="px-5 py-3 text-right font-medium text-blue-700">Compartido</th>
                 <th className="px-5 py-3 text-center font-medium text-gray-600">Transacciones</th>
+                <th className="px-5 py-3 text-center font-medium text-gray-600">Estado</th>
                 <th className="px-5 py-3 text-center font-medium text-gray-600">Acciones</th>
               </tr>
             </thead>
@@ -95,6 +101,12 @@ export default function HistorialPage() {
                   <td className="px-5 py-3 text-right text-purple-700">{fmt(row.meli + row.shared / 2)}</td>
                   <td className="px-5 py-3 text-right text-blue-700">{fmt(row.shared)}</td>
                   <td className="px-5 py-3 text-center text-gray-500">{row.count}</td>
+                  <td className="px-5 py-3 text-center">
+                    {row.status === 'closed'
+                      ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Cerrado</span>
+                      : <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Abierto</span>
+                    }
+                  </td>
                   <td className="px-5 py-3 text-center">
                     <div className="flex gap-2 justify-center">
                       <button

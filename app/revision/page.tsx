@@ -8,6 +8,7 @@ const ASSIGNMENTS: { value: Assignment; label: string; color: string }[] = [
   { value: 'ambos', label: 'Ambos', color: 'bg-blue-100 text-blue-800' },
   { value: 'fede', label: 'Fede', color: 'bg-green-100 text-green-800' },
   { value: 'meli', label: 'Meli', color: 'bg-purple-100 text-purple-800' },
+  { value: 'familia_meli', label: 'Familia Meli', color: 'bg-pink-100 text-pink-800' },
   { value: 'ignorar', label: 'Ignorar', color: 'bg-gray-100 text-gray-500' },
 ]
 
@@ -111,6 +112,7 @@ function RevisionContent() {
       if (e.key === 'a' || e.key === 'A') update(t.id, 'assignment', 'ambos')
       if (e.key === 'f' || e.key === 'F') update(t.id, 'assignment', 'fede')
       if (e.key === 'm' || e.key === 'M') update(t.id, 'assignment', 'meli')
+      if (e.key === 'g' || e.key === 'G') update(t.id, 'assignment', 'familia_meli')
       if (e.key === 'i' || e.key === 'I') update(t.id, 'assignment', 'ignorar')
       if (e.key === 'ArrowDown') { e.preventDefault(); setFocusedRow(r => Math.min(r + 1, filtered.length - 1)) }
       if (e.key === 'ArrowUp') { e.preventDefault(); setFocusedRow(r => Math.max(r - 1, 0)) }
@@ -160,6 +162,7 @@ function RevisionContent() {
           <kbd className="bg-gray-100 px-1 rounded">A</kbd> Ambos ·&nbsp;
           <kbd className="bg-gray-100 px-1 rounded">F</kbd> Fede ·&nbsp;
           <kbd className="bg-gray-100 px-1 rounded">M</kbd> Meli ·&nbsp;
+          <kbd className="bg-gray-100 px-1 rounded">G</kbd> Familia Meli ·&nbsp;
           <kbd className="bg-gray-100 px-1 rounded">I</kbd> Ignorar · Doble click en descripción/importe para editar
         </p>
 
