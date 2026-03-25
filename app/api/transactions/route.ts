@@ -7,15 +7,23 @@ export async function GET(req: NextRequest) {
   const allMonths = searchParams.get('all')
 
   if (allMonths) {
-    // Devuelve todas las transacciones (necesario para gráficos/historial)
-    // Supabase default limit is 1000 — use range to get all rows
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('month, assignment, amount_ars, amount_usd, include, card')
-      .order('month', { ascending: true })
-      .range(0, 99999)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data)
+    // Supabase anon key is capped at 1000 rows — paginate to get all
+    const all: any[] = []
+    const pageSize = 1000
+    let offset = 0
+    while (true) {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('month, assignment, amount_ars, amount_usd, include, card')
+        .order('month', { ascending: true })
+        .range(offset, offset + pageSize - 1)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (!data?.length) break
+      all.push(...data)
+      if (data.length < pageSize) break
+      offset += pageSize
+    }
+    return NextResponse.json(all)
   }
 
   const query = supabase.from('transactions').select('*').order('date', { ascending: true })
