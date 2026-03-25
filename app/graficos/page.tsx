@@ -139,7 +139,7 @@ export default function GraficosPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={filtered.length > 24 ? 5 : 1} />
               <YAxis tickFormatter={fmtARS} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => fmtARS(v)} labelFormatter={l => `Mes: ${l}`} />
+              <Tooltip formatter={(v) => fmtARS(Number(v))} labelFormatter={l => `Mes: ${l}`} />
               <Bar dataKey="total" fill="#3b82f6" radius={[3, 3, 0, 0]} name="Total ARS" />
             </BarChart>
           </ResponsiveContainer>
@@ -153,7 +153,7 @@ export default function GraficosPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={filtered.length > 24 ? 5 : 1} />
               <YAxis tickFormatter={fmtARS} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => fmtARS(v)} />
+              <Tooltip formatter={(v) => fmtARS(Number(v))} />
               <Legend />
               <Bar dataKey="fedeTotal" fill={COLORS.fede} radius={[3, 3, 0, 0]} name="Fede" stackId="a" />
               <Bar dataKey="meliTotal" fill={COLORS.meli} radius={[3, 3, 0, 0]} name="Meli" stackId="b" />
@@ -169,7 +169,7 @@ export default function GraficosPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={filtered.length > 24 ? 5 : 1} />
               <YAxis tickFormatter={fmtARS} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => fmtARS(v)} />
+              <Tooltip formatter={(v) => fmtARS(Number(v))} />
               <Legend />
               <Bar dataKey="shared" fill={COLORS.shared} name="Compartido" stackId="a" />
               <Bar dataKey="fede" fill={COLORS.fede} name="Personal Fede" stackId="a" />
@@ -187,7 +187,7 @@ export default function GraficosPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={filtered.length > 24 ? 5 : 1} />
               <YAxis tickFormatter={fmtARS} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => fmtARS(v)} />
+              <Tooltip formatter={(v) => fmtARS(Number(v))} />
               <Line
                 type="monotone"
                 dataKey="net"
