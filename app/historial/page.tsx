@@ -66,8 +66,8 @@ export default function HistorialPage() {
             <button onClick={() => router.push('/importar')} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
               Importar CSV
             </button>
-            <button onClick={() => router.push('/comparar')} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
-              Comparar meses
+            <button onClick={() => router.push('/graficos')} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
+              Gráficos
             </button>
             <button onClick={() => router.push('/cuotas')} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
               Cuotas pendientes
