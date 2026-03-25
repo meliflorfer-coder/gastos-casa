@@ -162,7 +162,7 @@ function ResumenContent() {
       acc[t.category!] = (acc[t.category!] || 0) + t.amount_ars
       return acc
     }, {} as Record<string, number>)
-  const sortedCategories = Object.entries(byCategory).sort(([, a], [, b]) => b - a)
+  const sortedCategories = (Object.entries(byCategory) as [string, number][]).sort(([, a], [, b]) => b - a)
   const totalCategorized = sortedCategories.reduce((s, [, v]) => s + v, 0)
 
   if (loading) return (

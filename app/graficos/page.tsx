@@ -108,7 +108,7 @@ export default function GraficosPage() {
       acc[t.category] = (acc[t.category] || 0) + (t.amount_ars || 0)
       return acc
     }, {} as Record<string, number>)
-  const categoryChartData = Object.entries(categoryTotals)
+  const categoryChartData = (Object.entries(categoryTotals) as [string, number][])
     .sort(([, a], [, b]) => b - a)
     .slice(0, 15)
     .map(([name, value]) => ({ name, value: Math.round(value) }))
