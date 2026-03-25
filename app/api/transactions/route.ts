@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     while (true) {
       const { data, error } = await supabase
         .from('transactions')
-        .select('month, assignment, amount_ars, amount_usd, include, card')
+        .select('month, assignment, amount_ars, amount_usd, include, card, category')
         .order('month', { ascending: true })
         .range(offset, offset + pageSize - 1)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })

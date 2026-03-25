@@ -93,6 +93,9 @@ function RevisionContent() {
 
   const cards = ['todas', ...Array.from(new Set(transactions.map(t => t.card)))]
   const pendingCount = transactions.filter(t => !t.user_reviewed).length
+  const uncategorizedCount = transactions.filter(t => t.include && !t.category && t.assignment !== 'ignorar').length
+  const reviewedCount = transactions.length - pendingCount
+  const progressPct = transactions.length > 0 ? Math.round(reviewedCount / transactions.length * 100) : 0
 
   const filtered = transactions.filter(t => {
     const matchText = t.description?.toLowerCase().includes(filter.toLowerCase())
@@ -153,6 +156,42 @@ function RevisionContent() {
             <button onClick={() => router.push(`/resumen?month=${month}`)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
               Ver resumen →
             </button>
+          </div>
+        </div>
+
+        {/* Barra de progreso */}
+        <div className="bg-white rounded-xl border shadow-sm p-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-4 text-sm">
+              <span className="font-medium text-gray-800">{reviewedCount}/{transactions.length} revisadas</span>
+              {pendingCount > 0 && (
+                <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium">
+                  {pendingCount} pendientes
+                </span>
+              )}
+              {uncategorizedCount > 0 && (
+                <span className="text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full text-xs font-medium">
+                  {uncategorizedCount} sin categoría
+                </span>
+              )}
+              {duplicates.size > 0 && (
+                <span className="text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full text-xs font-medium">
+                  ⚠ {duplicates.size} duplicados
+                </span>
+              )}
+              {pendingCount === 0 && uncategorizedCount === 0 && (
+                <span className="text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full text-xs font-medium">
+                  ✓ Listo para cerrar
+                </span>
+              )}
+            </div>
+            <span className="text-sm font-semibold text-gray-500">{progressPct}%</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all ${progressPct === 100 ? 'bg-green-500' : 'bg-blue-500'}`}
+              style={{ width: `${progressPct}%` }}
+            />
           </div>
         </div>
 

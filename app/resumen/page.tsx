@@ -156,6 +156,15 @@ function ResumenContent() {
     return acc
   }, {} as Record<string, number>)
 
+  const byCategory = arsItems
+    .filter(t => t.category)
+    .reduce((acc, t) => {
+      acc[t.category!] = (acc[t.category!] || 0) + t.amount_ars
+      return acc
+    }, {} as Record<string, number>)
+  const sortedCategories = Object.entries(byCategory).sort(([, a], [, b]) => b - a)
+  const totalCategorized = sortedCategories.reduce((s, [, v]) => s + v, 0)
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <p className="text-gray-500">Calculando resumen...</p>
@@ -306,6 +315,37 @@ function ResumenContent() {
             )}
           </div>
         </div>
+
+        {/* Por categoría */}
+        {sortedCategories.length > 0 && (
+          <div className="bg-white rounded-xl border shadow-sm p-5 mb-5">
+            <h2 className="font-semibold text-gray-800 mb-4">Por categoría (ARS)</h2>
+            <div className="space-y-2">
+              {sortedCategories.map(([cat, total]) => {
+                const pct = totalCategorized > 0 ? Math.round(total / totalCategorized * 100) : 0
+                return (
+                  <div key={cat}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-gray-700">{cat}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">{pct}%</span>
+                        <span className="text-sm font-medium text-gray-900">{fmtARS(total)}</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="bg-blue-400 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {arsItems.filter(t => !t.category).length > 0 && (
+              <p className="text-xs text-gray-400 mt-3">
+                {arsItems.filter(t => !t.category).length} transacciones sin categoría ({fmtARS(arsItems.filter(t => !t.category).reduce((s, t) => s + t.amount_ars, 0))})
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Por tarjeta */}
         <div className="bg-white rounded-xl border shadow-sm p-5 mb-5">

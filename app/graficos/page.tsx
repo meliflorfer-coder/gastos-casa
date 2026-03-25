@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  BarChart, Bar, LineChart, Line,
+  BarChart, Bar, LineChart, Line, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 
@@ -17,6 +17,27 @@ interface MonthData {
   net: number // positive = meli owes fede, negative = fede owes meli
 }
 
+const CATEGORY_COLORS: Record<string, string> = {
+  'Supermercado': '#22c55e',
+  'Restaurantes': '#f59e0b',
+  'Delivery': '#f97316',
+  'Servicios': '#6366f1',
+  'Suscripciones': '#8b5cf6',
+  'Salud': '#ec4899',
+  'Farmacia': '#db2777',
+  'Transporte': '#14b8a6',
+  'Combustible': '#64748b',
+  'Ropa': '#a855f7',
+  'Hogar': '#84cc16',
+  'Electrónica': '#3b82f6',
+  'Entretenimiento': '#06b6d4',
+  'Educación': '#0ea5e9',
+  'Viajes': '#f43f5e',
+  'Seguros': '#78716c',
+  'Impuestos': '#dc2626',
+  'Otros': '#9ca3af',
+}
+
 const fmtARS = (n: number) => {
   if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
   if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}K`
@@ -28,6 +49,7 @@ const COLORS = { fede: '#22c55e', meli: '#a855f7', shared: '#3b82f6', net: '#f59
 export default function GraficosPage() {
   const router = useRouter()
   const [data, setData] = useState<MonthData[]>([])
+  const [allTxs, setAllTxs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [fromYear, setFromYear] = useState('')
   const [toYear, setToYear] = useState('')
@@ -36,10 +58,11 @@ export default function GraficosPage() {
     fetch('/api/transactions?all=1')
       .then(r => r.json())
       .then((txs: any[]) => {
+        setAllTxs(txs)
         const map = new Map<string, MonthData>()
         for (const t of txs) {
           if (!t.include || t.assignment === 'ignorar' || t.assignment === 'familia_meli') continue
-          if (t.amount_usd > 0) continue // solo ARS para simplificar
+          if (t.amount_usd > 0) continue
 
           if (!map.has(t.month)) {
             map.set(t.month, { month: t.month, total: 0, fede: 0, meli: 0, shared: 0, count: 0, net: 0 })
@@ -53,7 +76,6 @@ export default function GraficosPage() {
           else if (t.assignment === 'meli') row.meli += ars
           else if (t.assignment === 'ambos') row.shared += ars
 
-          // Net transfer: card owner pays, other owes
           const card = (t.card || '').toLowerCase()
           const owner = card.includes('fede') ? 'fede' : card.includes('meli') ? 'meli' : null
           if (owner === 'fede') {
@@ -77,6 +99,19 @@ export default function GraficosPage() {
     if (toYear && year > toYear) return false
     return true
   })
+
+  // Category totals for filtered period
+  const filteredMonthSet = new Set(filtered.map(d => d.month))
+  const categoryTotals = allTxs
+    .filter(t => filteredMonthSet.has(t.month) && t.include && t.category && t.assignment !== 'ignorar' && t.assignment !== 'familia_meli' && !t.amount_usd)
+    .reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + (t.amount_ars || 0)
+      return acc
+    }, {} as Record<string, number>)
+  const categoryChartData = Object.entries(categoryTotals)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 15)
+    .map(([name, value]) => ({ name, value: Math.round(value) }))
 
   // Chart data: shorten month label
   const chartData = filtered.map(d => ({
@@ -194,6 +229,27 @@ export default function GraficosPage() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Top categorías */}
+        {categoryChartData.length > 0 && (
+          <div className="bg-white rounded-xl border shadow-sm p-5 mb-5">
+            <h2 className="font-semibold text-gray-800 mb-1">Top categorías (ARS)</h2>
+            <p className="text-xs text-gray-400 mb-4">Acumulado del período seleccionado</p>
+            <ResponsiveContainer width="100%" height={Math.max(categoryChartData.length * 36, 200)}>
+              <BarChart data={categoryChartData} layout="vertical" margin={{ top: 0, right: 60, left: 10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                <XAxis type="number" tickFormatter={fmtARS} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={110} />
+                <Tooltip formatter={(v) => fmtARS(Number(v))} />
+                <Bar dataKey="value" radius={[0, 3, 3, 0]} name="Total ARS">
+                  {categoryChartData.map((entry) => (
+                    <Cell key={entry.name} fill={CATEGORY_COLORS[entry.name] || '#3b82f6'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {/* Transferencia neta */}
         <div className="bg-white rounded-xl border shadow-sm p-5">
