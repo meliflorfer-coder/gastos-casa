@@ -7,11 +7,13 @@ export async function GET(req: NextRequest) {
   const allMonths = searchParams.get('all')
 
   if (allMonths) {
-    // Devuelve resumen agrupado por mes
+    // Devuelve todas las transacciones (necesario para gráficos/historial)
+    // Supabase default limit is 1000 — use range to get all rows
     const { data, error } = await supabase
       .from('transactions')
-      .select('month, assignment, amount_ars, amount_usd, include')
-      .order('month', { ascending: false })
+      .select('month, assignment, amount_ars, amount_usd, include, card')
+      .order('month', { ascending: true })
+      .range(0, 99999)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data)
   }
