@@ -366,29 +366,35 @@ export default function Home() {
             onClick={() => router.push(`/revision?month=${month}`)}
             className="border border-gray-300 text-gray-700 py-2 rounded-xl text-sm hover:bg-gray-50 transition"
           >
-            Ver revisión del mes
+            Revisión del mes
           </button>
           <button
             onClick={() => router.push(`/resumen?month=${month}`)}
             className="border border-gray-300 text-gray-700 py-2 rounded-xl text-sm hover:bg-gray-50 transition"
           >
-            Ver resumen
+            Resumen
           </button>
           <button
             onClick={() => router.push('/historial')}
             className="border border-gray-300 text-gray-700 py-2 rounded-xl text-sm hover:bg-gray-50 transition"
           >
-            Historial de meses
+            Historial
           </button>
           <button
-            onClick={() => router.push('/comparar')}
+            onClick={() => router.push('/graficos')}
             className="border border-gray-300 text-gray-700 py-2 rounded-xl text-sm hover:bg-gray-50 transition"
           >
-            Comparar meses
+            Gráficos
+          </button>
+          <button
+            onClick={() => router.push('/iva')}
+            className="border border-gray-300 text-gray-700 py-2 rounded-xl text-sm hover:bg-gray-50 transition"
+          >
+            IVA
           </button>
           <button
             onClick={() => router.push('/cuotas')}
-            className="col-span-2 border border-gray-300 text-gray-700 py-2 rounded-xl text-sm hover:bg-gray-50 transition"
+            className="border border-gray-300 text-gray-700 py-2 rounded-xl text-sm hover:bg-gray-50 transition"
           >
             Cuotas pendientes
           </button>

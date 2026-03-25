@@ -29,7 +29,8 @@ export default function GraficosPage() {
   const router = useRouter()
   const [data, setData] = useState<MonthData[]>([])
   const [loading, setLoading] = useState(true)
-  const [yearFilter, setYearFilter] = useState('todos')
+  const [fromYear, setFromYear] = useState('')
+  const [toYear, setToYear] = useState('')
 
   useEffect(() => {
     fetch('/api/transactions?all=1')
@@ -69,8 +70,13 @@ export default function GraficosPage() {
       })
   }, [])
 
-  const years = ['todos', ...Array.from(new Set(data.map(d => d.month.slice(0, 4)))).sort()]
-  const filtered = yearFilter === 'todos' ? data : data.filter(d => d.month.startsWith(yearFilter))
+  const years = Array.from(new Set(data.map(d => d.month.slice(0, 4)))).sort()
+  const filtered = data.filter(d => {
+    const year = d.month.slice(0, 4)
+    if (fromYear && year < fromYear) return false
+    if (toYear && year > toYear) return false
+    return true
+  })
 
   // Chart data: shorten month label
   const chartData = filtered.map(d => ({
@@ -100,12 +106,23 @@ export default function GraficosPage() {
             <h1 className="text-2xl font-bold text-gray-900">Gráficos</h1>
             <p className="text-gray-500 text-sm">{filtered.length} meses · {filtered[0]?.month} → {filtered[filtered.length - 1]?.month}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <span className="text-sm text-gray-500">Desde</span>
             <select
-              value={yearFilter}
-              onChange={e => setYearFilter(e.target.value)}
+              value={fromYear}
+              onChange={e => setFromYear(e.target.value)}
               className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
+              <option value="">—</option>
+              {years.map(y => <option key={y}>{y}</option>)}
+            </select>
+            <span className="text-sm text-gray-500">Hasta</span>
+            <select
+              value={toYear}
+              onChange={e => setToYear(e.target.value)}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">—</option>
               {years.map(y => <option key={y}>{y}</option>)}
             </select>
             <button onClick={() => router.push('/historial')} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">

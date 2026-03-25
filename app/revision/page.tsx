@@ -219,7 +219,6 @@ function RevisionContent() {
                   <th className="px-3 py-3 text-center font-medium text-gray-600">Cuota</th>
                   <th className="px-3 py-3 text-center font-medium text-gray-600">Asignación</th>
                   <th className="px-3 py-3 text-center font-medium text-gray-600">Categoría</th>
-                  <th className="px-3 py-3 text-center font-medium text-gray-600">IVA</th>
                   <th className="px-3 py-3 w-8"></th>
                 </tr>
               </thead>
@@ -316,14 +315,6 @@ function RevisionContent() {
                         <option value="">—</option>
                         {CATEGORIES.filter(c => c).map(c => <option key={c}>{c}</option>)}
                       </select>
-                    </td>
-                    <td className="px-3 py-2.5 text-center" onClick={e => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={t.has_iva}
-                        onChange={e => t.id && update(t.id, 'has_iva', e.target.checked)}
-                        className="rounded"
-                      />
                     </td>
                     <td className="px-3 py-2.5 text-center" onClick={e => e.stopPropagation()}>
                       <button

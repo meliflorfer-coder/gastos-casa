@@ -28,6 +28,7 @@ function ResumenContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [monthRecord, setMonthRecord] = useState<MonthRecord | null>(null)
   const [carryoverARS, setCarryoverARS] = useState(0)
+  const [ivaTotal, setIvaTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -36,12 +37,15 @@ function ResumenContent() {
     Promise.all([
       fetch(`/api/transactions?month=${month}`).then(r => r.json()),
       fetch(`/api/months?month=${month}`).then(r => r.json()),
-    ]).then(([txData, monthData]) => {
+      fetch(`/api/iva-documents?month=${month}`).then(r => r.json()),
+    ]).then(([txData, monthData, ivaDocs]) => {
       setTransactions(txData || [])
       if (monthData) {
         setMonthRecord(monthData)
         setCarryoverARS(monthData.previous_debt_ars || 0)
       }
+      const totalIva = (ivaDocs || []).reduce((s: number, d: any) => s + (d.iva_amount || 0), 0)
+      setIvaTotal(totalIva)
       setLoading(false)
     })
   }, [month])
@@ -60,7 +64,6 @@ function ResumenContent() {
   const meliUSD = usdItems.filter(t => t.assignment === 'meli').reduce((s, t) => s + t.amount_usd, 0)
   const sharedUSD = usdItems.filter(t => t.assignment === 'ambos').reduce((s, t) => s + t.amount_usd, 0)
 
-  const ivaTotal = included.filter(t => t.has_iva).reduce((s, t) => s + t.amount_ars, 0)
   const familyMeliTotal = transactions.filter(t => t.include && t.assignment === 'familia_meli').reduce((s, t) => s + t.amount_ars, 0)
 
   // ── Cálculo de transferencia neta (ARS) ──────────────────────────────────
@@ -287,13 +290,14 @@ function ResumenContent() {
             {sharedUSD > 0 && <p className="text-xs text-blue-600 mt-1">{fmtUSD(sharedUSD / 2)} c/u en USD</p>}
           </div>
           <div className="space-y-3">
-            {ivaTotal > 0 && (
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                <p className="text-xs font-medium text-orange-700">Total con IVA</p>
-                <p className="text-xl font-bold text-orange-900 mt-1">{fmtARS(ivaTotal)}</p>
-                <p className="text-xs text-orange-600">{included.filter(t => t.has_iva).length} transacciones</p>
-              </div>
-            )}
+            <div
+              className="bg-orange-50 border border-orange-200 rounded-xl p-4 cursor-pointer hover:bg-orange-100 transition"
+              onClick={() => router.push(`/iva?month=${month}`)}
+            >
+              <p className="text-xs font-medium text-orange-700">IVA del mes</p>
+              <p className="text-xl font-bold text-orange-900 mt-1">{fmtARS(ivaTotal)}</p>
+              <p className="text-xs text-orange-600 mt-0.5">Ver facturas →</p>
+            </div>
             {familyMeliTotal > 0 && (
               <div className="bg-pink-50 border border-pink-200 rounded-xl p-4">
                 <p className="text-xs font-medium text-pink-700">Familia Meli (excluido)</p>

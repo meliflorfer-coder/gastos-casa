@@ -63,14 +63,14 @@ export default function HistorialPage() {
             <p className="text-gray-500 text-sm">{rows.length} meses procesados</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => router.push('/importar')} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
-              Importar CSV
-            </button>
-            <button onClick={() => router.push('/graficos')} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
+            <button onClick={() => router.push('/graficos')} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
               Gráficos
             </button>
+            <button onClick={() => router.push('/iva')} className="border border-orange-300 text-orange-700 px-4 py-2 rounded-lg text-sm hover:bg-orange-50">
+              IVA
+            </button>
             <button onClick={() => router.push('/cuotas')} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
-              Cuotas pendientes
+              Cuotas
             </button>
             <button onClick={() => router.push('/')} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
               ← Inicio
