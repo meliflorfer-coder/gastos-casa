@@ -348,7 +348,7 @@ const TYPE_HINTS: Record<ExpenseType, string> = {
   shared:        '÷ 2 entre Fede y Meli. Entra en la liquidación.',
   personal_fede: 'Solo de Fede. No se reparte.',
   personal_meli: 'Solo de Meli. No se reparte.',
-  family_meli:   'Familia / mamá de Meli. NO entra en la liquidación familiar.',
+  third_party:   'Gasto de terceros. NO entra en el cálculo de ninguno.',
   extraordinary: 'Gasto extraordinario del depto. Trato especial.',
   iva:           'IVA registrado por separado.',
   excluded:      'Excluido de la liquidación por otro motivo.',

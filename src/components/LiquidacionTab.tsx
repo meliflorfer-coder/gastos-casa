@@ -137,10 +137,10 @@ export default function LiquidacionTab({ monthKey, month, expenses, settlement, 
           )}
 
           {/* Excluidos */}
-          {(s.familyMeli > 0 || s.otherExcluded > 0) && (
+          {(s.thirdParty > 0 || s.otherExcluded > 0) && (
             <Section title="Excluidos de la liquidación">
               <div className="grid grid-cols-2 gap-4">
-                {s.familyMeli > 0 && <PersonSide label="👨‍👩‍👦 Familia Meli" amount={s.familyMeli} dimmed />}
+                {s.thirdParty > 0 && <PersonSide label="👥 Gastos de Terceros" amount={s.thirdParty} dimmed />}
                 {s.otherExcluded > 0 && <PersonSide label="⛔ Otros excluidos" amount={s.otherExcluded} dimmed />}
               </div>
             </Section>

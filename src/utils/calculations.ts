@@ -40,8 +40,8 @@ export function calculateSettlement(expenses: Expense[], previousDebt: number): 
     .reduce((s, e) => s + e.amountARS, 0);
 
   // Excluidos (informativos)
-  const familyMeli = expenses
-    .filter(e => e.type === 'family_meli')
+  const thirdParty = expenses
+    .filter(e => e.type === 'third_party')
     .reduce((s, e) => s + e.amountARS, 0);
   const otherExcluded = expenses
     .filter(e => e.type === 'excluded')
@@ -64,7 +64,7 @@ export function calculateSettlement(expenses: Expense[], previousDebt: number): 
     meliBalance,
     fedePersonal,
     meliPersonal,
-    familyMeli,
+    thirdParty,
     otherExcluded,
     ivaTotal,
     netTransfer,

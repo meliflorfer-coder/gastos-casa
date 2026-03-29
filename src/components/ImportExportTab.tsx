@@ -191,7 +191,7 @@ export default function ImportExportTab({ monthKey, onRefresh }: Props) {
               <p>fecha, descripcion, propietario, tarjeta, cuota_actual, cuota_total,</p>
               <p>moneda, importe_original, cotizacion, impuestos, tipo, categoria, notas, referencia</p>
               <p className="mt-2 font-sans text-gray-500">• Separador: coma o punto y coma</p>
-              <p className="font-sans text-gray-500">• propietario: "fede" o "meli" | tipo: shared, personal_fede, personal_meli, family_meli, excluded</p>
+              <p className="font-sans text-gray-500">• propietario: "fede" o "meli" | tipo: shared, personal_fede, personal_meli, third_party, excluded</p>
               <p className="font-sans text-gray-500">• moneda: ARS, USD, EUR</p>
             </>
           ) : (

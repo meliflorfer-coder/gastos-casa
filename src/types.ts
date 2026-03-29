@@ -10,7 +10,7 @@ export type ExpenseType =
   | 'shared'        // Compartido entre ambos (÷ 2)
   | 'personal_fede' // Solo Fede — no se reparte
   | 'personal_meli' // Solo Meli — no se reparte
-  | 'family_meli'   // Familia/mamá de Meli — EXCLUIDO de la liquidación familiar
+  | 'third_party'   // Gastos de terceros — NO entran en la liquidación
   | 'extraordinary' // Gasto extraordinario del depto (trato especial si es necesario)
   | 'iva'           // IVA / impuesto — se registra por separado
   | 'excluded';     // Excluido por cualquier otro motivo
@@ -103,7 +103,7 @@ export interface Settlement {
   meliPersonal: number;
 
   // Gastos excluidos (informativo)
-  familyMeli: number;
+  thirdParty: number;
   otherExcluded: number;
 
   // IVA (informativo)

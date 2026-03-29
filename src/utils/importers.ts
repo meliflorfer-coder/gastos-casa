@@ -222,7 +222,7 @@ function normalizeType(raw: string): ExpenseType {
   const r = raw.toLowerCase().replace(/[_\s]/g, '');
   if (r.includes('shared') || r.includes('compartido')) return 'shared';
   if (r.includes('fede')) return 'personal_fede';
-  if (r.includes('familiam') || r.includes('mamam')) return 'family_meli';
+  if (r.includes('familiam') || r.includes('mamam') || r.includes('tercero') || r.includes('thirdparty')) return 'third_party';
   if (r.includes('meli')) return 'personal_meli';
   if (r.includes('extra') || r.includes('depto')) return 'extraordinary';
   if (r.includes('iva')) return 'iva';

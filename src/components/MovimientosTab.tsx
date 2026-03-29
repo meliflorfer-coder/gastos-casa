@@ -222,7 +222,7 @@ function ExpenseRow({
   readOnly: boolean;
   showIva: boolean;
 }) {
-  const isExcluded = e.type === 'excluded' || e.type === 'family_meli';
+  const isExcluded = e.type === 'excluded' || e.type === 'third_party';
   const ivaEligible = IVA_ELIGIBLE_TYPES.includes(e.type);
   const ivaAmount = computeIva(e);
   const ivaIsManual = e.ivaAmount > 0;
@@ -347,10 +347,10 @@ function ExpenseRow({
 // ─── Fila de totales ─────────────────────────────────────────────────────────
 function TotalsRow({ expenses, showIva }: { expenses: Expense[]; showIva: boolean }) {
   const totalARS = expenses
-    .filter(e => e.type !== 'excluded' && e.type !== 'family_meli')
+    .filter(e => e.type !== 'excluded' && e.type !== 'third_party')
     .reduce((s, e) => s + e.amountARS, 0);
   const totalExcluded = expenses
-    .filter(e => e.type === 'excluded' || e.type === 'family_meli')
+    .filter(e => e.type === 'excluded' || e.type === 'third_party')
     .reduce((s, e) => s + e.amountARS, 0);
   const totalIvaTracked = expenses
     .filter(e => e.ivaTracked)
