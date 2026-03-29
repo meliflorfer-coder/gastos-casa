@@ -3,11 +3,12 @@ import { Plus, Filter, X, AlertTriangle } from 'lucide-react';
 import type { Expense, MonthRecord, Settlement, ExpenseType, Owner } from '../types';
 import {
   EXPENSE_TYPE_LABELS, EXPENSE_TYPE_COLORS, EXPENSE_TYPE_ROW_COLORS,
-  CATEGORY_LABELS,
+  CATEGORY_LABELS, IVA_ELIGIBLE_TYPES,
 } from '../constants';
 import { formatARS, formatDate, formatInstallment } from '../utils/formatters';
+import { computeIva } from '../utils/calculations';
 import ExpenseModal from './ExpenseModal';
-import { deleteExpense } from '../db';
+import { deleteExpense, saveExpense } from '../db';
 
 interface Props {
   monthKey: string;
@@ -44,6 +45,11 @@ export default function MovimientosTab({ monthKey, month, expenses, settlement, 
   const handleDelete = async (id: number) => {
     await deleteExpense(id);
     setConfirmDelete(null);
+    onRefresh();
+  };
+
+  const handleToggleIva = async (expense: Expense) => {
+    await saveExpense({ ...expense, ivaTracked: !expense.ivaTracked });
     onRefresh();
   };
 
@@ -132,6 +138,7 @@ export default function MovimientosTab({ monthKey, month, expenses, settlement, 
                   <th className="th w-16">Cuota</th>
                   <th className="th w-28 text-right">Importe</th>
                   <th className="th w-24 text-right">En ARS</th>
+                  <th className="th w-28 text-right" title="IVA estimado al 21%. Tildá los gastos con factura para incluirlos en el reporte.">IVA 21% ✓</th>
                   <th className="th w-32">Tipo</th>
                   <th className="th w-28">Categoría</th>
                   <th className="th w-16 text-center">Acc.</th>
@@ -144,6 +151,7 @@ export default function MovimientosTab({ monthKey, month, expenses, settlement, 
                     expense={e}
                     onEdit={() => setModal({ open: true, expense: e })}
                     onDelete={() => setConfirmDelete(e.id!)}
+                    onToggleIva={() => handleToggleIva(e)}
                     readOnly={month.status === 'closed'}
                   />
                 ))}
@@ -193,14 +201,19 @@ function ExpenseRow({
   expense: e,
   onEdit,
   onDelete,
+  onToggleIva,
   readOnly,
 }: {
   expense: Expense;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleIva: () => void;
   readOnly: boolean;
 }) {
   const isExcluded = e.type === 'excluded' || e.type === 'family_meli';
+  const ivaEligible = IVA_ELIGIBLE_TYPES.includes(e.type);
+  const ivaAmount = computeIva(e);
+  const ivaIsManual = e.ivaAmount > 0;
 
   return (
     <tr className={`border-b border-gray-100 hover:brightness-95 transition-colors ${EXPENSE_TYPE_ROW_COLORS[e.type]}`}>
@@ -260,6 +273,28 @@ function ExpenseRow({
         ) : '—'}
       </td>
 
+      {/* IVA */}
+      <td className="td text-right whitespace-nowrap">
+        {ivaEligible ? (
+          <div className="flex flex-col items-end gap-0.5">
+            <span className={`font-mono text-xs ${e.ivaTracked ? 'text-green-700 font-semibold' : 'text-gray-400'}`}>
+              {formatARS(ivaAmount)}
+              {ivaIsManual && <span className="ml-1 text-green-600" title="Monto manual de factura">●</span>}
+            </span>
+            <input
+              type="checkbox"
+              checked={!!e.ivaTracked}
+              onChange={onToggleIva}
+              disabled={readOnly}
+              title={e.ivaTracked ? 'Quitar del reporte IVA' : 'Tengo la factura — incluir en reporte IVA'}
+              className="w-3.5 h-3.5 accent-green-600 cursor-pointer disabled:cursor-default"
+            />
+          </div>
+        ) : (
+          <span className="text-gray-300">—</span>
+        )}
+      </td>
+
       {/* Tipo */}
       <td className="td">
         <span className={`badge ${EXPENSE_TYPE_COLORS[e.type]}`}>
@@ -305,6 +340,10 @@ function TotalsRow({ expenses }: { expenses: Expense[] }) {
   const totalExcluded = expenses
     .filter(e => e.type === 'excluded' || e.type === 'family_meli')
     .reduce((s, e) => s + e.amountARS, 0);
+  const totalIvaTracked = expenses
+    .filter(e => e.ivaTracked)
+    .reduce((s, e) => s + computeIva(e), 0);
+  const trackedCount = expenses.filter(e => e.ivaTracked).length;
 
   return (
     <tr className="bg-gray-50 border-t-2 border-gray-300 font-semibold">
@@ -313,6 +352,14 @@ function TotalsRow({ expenses }: { expenses: Expense[] }) {
       </td>
       <td className="td text-right text-gray-800" colSpan={2}>
         {formatARS(totalARS)}
+      </td>
+      <td className="td text-right">
+        {totalIvaTracked > 0 ? (
+          <span className="text-green-700 font-semibold font-mono text-xs">
+            {formatARS(totalIvaTracked)}
+            <span className="text-gray-400 font-normal ml-1">({trackedCount})</span>
+          </span>
+        ) : '—'}
       </td>
       <td className="td text-xs text-gray-400" colSpan={3}>
         {totalExcluded > 0 && `(+ ${formatARS(totalExcluded)} excluido)`}

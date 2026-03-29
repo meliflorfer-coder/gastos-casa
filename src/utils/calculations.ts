@@ -47,11 +47,10 @@ export function calculateSettlement(expenses: Expense[], previousDebt: number): 
     .filter(e => e.type === 'excluded')
     .reduce((s, e) => s + e.amountARS, 0);
 
-  // IVA (informativo)
-  const ivaTotal = expenses
-    .filter(e => e.type === 'iva')
-    .reduce((s, e) => s + e.amountARS, 0)
-    + expenses.reduce((s, e) => s + (e.ivaAmount || 0), 0);
+  // IVA — entradas manuales de tipo 'iva' + gastos con ivaTracked marcado
+  const ivaTotal =
+    expenses.filter(e => e.type === 'iva').reduce((s, e) => s + e.amountARS, 0)
+    + expenses.filter(e => e.type !== 'iva' && e.ivaTracked).reduce((s, e) => s + computeIva(e), 0);
 
   // Total final = transferencia del mes + deuda anterior
   const finalNet = netTransfer + previousDebt;
@@ -72,6 +71,16 @@ export function calculateSettlement(expenses: Expense[], previousDebt: number): 
     previousDebt,
     finalNet,
   };
+}
+
+/**
+ * Calcula el IVA de un gasto:
+ * - Si tiene ivaAmount manual (> 0): lo usa directamente (dato de la factura).
+ * - Si no: extrae el 21% de un precio que ya incluye IVA (precio * 21/121).
+ */
+export function computeIva(expense: Expense): number {
+  if (expense.ivaAmount > 0) return expense.ivaAmount;
+  return Math.round(expense.amountARS * 21 / 121);
 }
 
 /** Calcula el monto en ARS para un gasto */

@@ -66,7 +66,8 @@ export interface Expense {
   type: ExpenseType;
 
   // IVA (para gastos que tienen IVA discriminado)
-  ivaAmount: number;   // 0 si no aplica
+  ivaAmount: number;   // 0 = auto-calculado al 21%; > 0 = monto manual (de la factura)
+  ivaTracked?: boolean; // true = tengo la factura, incluir este IVA en el reporte
 
   // Metadatos
   createdAt: string;

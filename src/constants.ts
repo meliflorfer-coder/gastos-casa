@@ -59,6 +59,11 @@ export const EXPENSE_TYPE_ROW_COLORS: Record<ExpenseType, string> = {
 // Tipos que SÍ entran en la liquidación
 export const BILLABLE_TYPES: ExpenseType[] = ['shared', 'personal_fede', 'personal_meli', 'extraordinary'];
 
+// IVA
+export const IVA_RATE = 21; // Alícuota estándar ARG (%)
+// Tipos que pueden tener IVA trackeado (excluye los que son IVA en sí o están excluidos)
+export const IVA_ELIGIBLE_TYPES: ExpenseType[] = ['shared', 'personal_fede', 'personal_meli', 'extraordinary'];
+
 // ─── Categorías ───────────────────────────────────────────────────────────────
 export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   supermercado:   'Supermercado',
@@ -102,4 +107,5 @@ export const EMPTY_EXPENSE = {
   amountARS: 0,
   type: 'shared' as ExpenseType,
   ivaAmount: 0,
+  ivaTracked: false,
 };
