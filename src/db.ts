@@ -1,69 +1,78 @@
-import Dexie, { type Table } from 'dexie';
+import { createClient } from '@supabase/supabase-js';
 import type { Expense, MonthRecord } from './types';
 
-class GastosCasaDB extends Dexie {
-  months!: Table<MonthRecord>;
-  expenses!: Table<Expense>;
-
-  constructor() {
-    super('gastos-casa');
-
-    this.version(1).stores({
-      // Índices: primaryKey, luego campos indexados
-      months:   '++id, monthKey, status, year, month',
-      expenses: '++id, monthKey, owner, type, date, card',
-    });
-  }
-}
-
-export const db = new GastosCasaDB();
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL as string,
+  import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export async function getOrCreateMonth(monthKey: string): Promise<MonthRecord> {
   const [year, month] = monthKey.split('-').map(Number);
-  let record = await db.months.where('monthKey').equals(monthKey).first();
-  if (!record) {
-    const id = await db.months.add({
-      monthKey,
-      year,
-      month,
-      status: 'open',
-      previousDebt: 0,
-      notes: '',
-      closedAt: '',
-    });
-    record = await db.months.get(id);
-  }
-  return record!;
+
+  const { data: existing } = await supabase
+    .from('months')
+    .select('*')
+    .eq('monthKey', monthKey)
+    .maybeSingle();
+
+  if (existing) return existing as MonthRecord;
+
+  const { data: created } = await supabase
+    .from('months')
+    .insert({ monthKey, year, month, status: 'open', previousDebt: 0, notes: '', closedAt: '' })
+    .select()
+    .single();
+
+  return created as MonthRecord;
 }
 
 export async function getExpensesByMonth(monthKey: string): Promise<Expense[]> {
-  return db.expenses
-    .where('monthKey')
-    .equals(monthKey)
-    .sortBy('date');
+  const { data } = await supabase
+    .from('expenses')
+    .select('*')
+    .eq('monthKey', monthKey)
+    .order('date', { ascending: true });
+
+  return (data || []) as Expense[];
 }
 
 export async function saveExpense(expense: Omit<Expense, 'id'> & { id?: number }): Promise<number> {
   const now = new Date().toISOString();
+
   if (expense.id) {
-    await db.expenses.update(expense.id, { ...expense, updatedAt: now });
+    await supabase
+      .from('expenses')
+      .update({ ...expense, updatedAt: now })
+      .eq('id', expense.id);
     return expense.id;
   }
-  return db.expenses.add({ ...expense, createdAt: now, updatedAt: now }) as Promise<number>;
+
+  const { data } = await supabase
+    .from('expenses')
+    .insert({ ...expense, createdAt: now, updatedAt: now })
+    .select('id')
+    .single();
+
+  return (data as { id: number }).id;
 }
 
 export async function deleteExpense(id: number): Promise<void> {
-  await db.expenses.delete(id);
+  await supabase.from('expenses').delete().eq('id', id);
 }
 
 export async function updateMonthRecord(monthKey: string, data: Partial<MonthRecord>): Promise<void> {
-  await db.months.where('monthKey').equals(monthKey).modify(data);
+  await supabase.from('months').update(data).eq('monthKey', monthKey);
 }
 
 export async function getAllMonths(): Promise<MonthRecord[]> {
-  return db.months.orderBy('monthKey').reverse().toArray();
+  const { data } = await supabase
+    .from('months')
+    .select('*')
+    .order('monthKey', { ascending: false });
+
+  return (data || []) as MonthRecord[];
 }
 
 /** Importa gastos en bulk — usado por el importador CSV */
@@ -74,30 +83,41 @@ export async function bulkImportExpenses(expenses: Omit<Expense, 'id'>[]): Promi
     createdAt: e.createdAt || now,
     updatedAt: now,
   }));
-  const ids = await db.expenses.bulkAdd(withTimestamps, { allKeys: true }) as number[];
-  return ids.length;
+
+  const { data } = await supabase
+    .from('expenses')
+    .insert(withTimestamps)
+    .select('id');
+
+  return (data || []).length;
 }
 
 /** Exporta todos los datos como JSON (backup completo) */
 export async function exportAllData() {
-  const months = await db.months.toArray();
-  const expenses = await db.expenses.toArray();
-  return { months, expenses, exportedAt: new Date().toISOString() };
+  const { data: months } = await supabase.from('months').select('*');
+  const { data: expenses } = await supabase.from('expenses').select('*');
+  return { months: months || [], expenses: expenses || [], exportedAt: new Date().toISOString() };
 }
 
 /** Importa un backup JSON completo */
 export async function importBackup(data: { months: MonthRecord[]; expenses: Expense[] }) {
-  await db.transaction('rw', db.months, db.expenses, async () => {
-    // Meses: insertar si no existen
-    for (const m of data.months) {
-      const existing = await db.months.where('monthKey').equals(m.monthKey).first();
-      if (!existing) {
-        const { id: _, ...rest } = m;
-        await db.months.add(rest);
-      }
+  // Meses: insertar si no existen
+  for (const m of data.months) {
+    const { data: existing } = await supabase
+      .from('months')
+      .select('id')
+      .eq('monthKey', m.monthKey)
+      .maybeSingle();
+
+    if (!existing) {
+      const { id: _, ...rest } = m;
+      await supabase.from('months').insert(rest);
     }
-    // Gastos: insertar todos sin ID para evitar colisiones
-    const expensesWithoutIds = data.expenses.map(({ id: _, ...rest }) => rest);
-    await db.expenses.bulkAdd(expensesWithoutIds);
-  });
+  }
+
+  // Gastos: insertar todos sin ID para evitar colisiones
+  const expensesWithoutIds = data.expenses.map(({ id: _, ...rest }) => rest);
+  if (expensesWithoutIds.length > 0) {
+    await supabase.from('expenses').insert(expensesWithoutIds);
+  }
 }
