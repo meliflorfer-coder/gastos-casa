@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, Sparkles, Check, X, AlertTriangle, FileText, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Check, X, AlertTriangle, FileText, Loader2 } from 'lucide-react';
 import { analyzeDocumentWithGemini, type GeminiExpense, type GeminiResult } from '../utils/gemini';
 import { bulkImportExpenses, supabase } from '../db';
-import { EXPENSE_TYPE_LABELS, CATEGORY_LABELS, EXPENSE_TYPE_COLORS } from '../constants';
+import { EXPENSE_TYPE_LABELS, CATEGORY_LABELS } from '../constants';
 import { formatARS } from '../utils/formatters';
 import type { ExpenseCategory, ExpenseType, Owner } from '../types';
 
@@ -96,6 +96,8 @@ export default function ImportAITab({ monthKey, onRefresh }: Props) {
         ivaTracked: e.ivaTracked,
         notes: e.notes,
         evidenceRef: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }));
 
     const count = await bulkImportExpenses(toImport);
@@ -277,7 +279,7 @@ export default function ImportAITab({ monthKey, onRefresh }: Props) {
           <button
             className="btn-primary flex items-center gap-2"
             onClick={handleImport}
-            disabled={selectedCount === 0 || status === 'importing'}
+            disabled={selectedCount === 0}
           >
             <Check size={16} />
             Importar {selectedCount} {selectedCount === 1 ? 'gasto' : 'gastos'}
@@ -398,6 +400,13 @@ function ReviewRow({
           />
         </td>
         <td className="td text-right font-mono font-semibold">
+          <button
+            onClick={() => setExpanded(x => !x)}
+            className="text-gray-400 hover:text-gray-600 mr-1"
+            title="Ver más campos"
+          >
+            {expanded ? '▲' : '▼'}
+          </button>
           {formatARS(e.amountARS)}
         </td>
         <td className="td text-center text-xs text-gray-500">
