@@ -27,6 +27,7 @@ export default function MovimientosTab({ monthKey, month, expenses, settlement, 
   const [filterOwner, setFilterOwner] = useState<FilterOwner>('all');
   const [filterText, setFilterText] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [showIva, setShowIva] = useState(false);
 
   const filtered = useMemo(() => {
     return expenses.filter(e => {
@@ -107,6 +108,14 @@ export default function MovimientosTab({ monthKey, month, expenses, settlement, 
             ))}
           </select>
 
+          <button
+            className={`btn-ghost text-xs border ${showIva ? 'border-green-400 text-green-700 bg-green-50' : 'border-gray-200 text-gray-500'}`}
+            onClick={() => setShowIva(v => !v)}
+            title="Mostrar columna IVA para tildar gastos con factura"
+          >
+            🧾 IVA
+          </button>
+
           {hasFilters && (
             <button
               className="btn-ghost text-xs"
@@ -138,7 +147,7 @@ export default function MovimientosTab({ monthKey, month, expenses, settlement, 
                   <th className="th w-16">Cuota</th>
                   <th className="th w-28 text-right">Importe</th>
                   <th className="th w-24 text-right">En ARS</th>
-                  <th className="th w-28 text-right" title="IVA estimado al 21%. Tildá los gastos con factura para incluirlos en el reporte.">IVA 21% ✓</th>
+                  {showIva && <th className="th w-28 text-right text-green-700" title="IVA estimado al 21%. Tildá los que tienen factura.">IVA 21% ✓</th>}
                   <th className="th w-32">Tipo</th>
                   <th className="th w-28">Categoría</th>
                   <th className="th w-16 text-center">Acc.</th>
@@ -153,11 +162,12 @@ export default function MovimientosTab({ monthKey, month, expenses, settlement, 
                     onDelete={() => setConfirmDelete(e.id!)}
                     onToggleIva={() => handleToggleIva(e)}
                     readOnly={month.status === 'closed'}
+                    showIva={showIva}
                   />
                 ))}
               </tbody>
               <tfoot>
-                <TotalsRow expenses={filtered} />
+                <TotalsRow expenses={filtered} showIva={showIva} />
               </tfoot>
             </table>
           </div>
@@ -203,12 +213,14 @@ function ExpenseRow({
   onDelete,
   onToggleIva,
   readOnly,
+  showIva,
 }: {
   expense: Expense;
   onEdit: () => void;
   onDelete: () => void;
   onToggleIva: () => void;
   readOnly: boolean;
+  showIva: boolean;
 }) {
   const isExcluded = e.type === 'excluded' || e.type === 'family_meli';
   const ivaEligible = IVA_ELIGIBLE_TYPES.includes(e.type);
@@ -273,8 +285,8 @@ function ExpenseRow({
         ) : '—'}
       </td>
 
-      {/* IVA */}
-      <td className="td text-right whitespace-nowrap">
+      {/* IVA (solo visible en modo IVA) */}
+      {showIva && <td className="td text-right whitespace-nowrap">
         {ivaEligible ? (
           <div className="flex flex-col items-end gap-0.5">
             <span className={`font-mono text-xs ${e.ivaTracked ? 'text-green-700 font-semibold' : 'text-gray-400'}`}>
@@ -293,7 +305,7 @@ function ExpenseRow({
         ) : (
           <span className="text-gray-300">—</span>
         )}
-      </td>
+      </td>}
 
       {/* Tipo */}
       <td className="td">
@@ -333,7 +345,7 @@ function ExpenseRow({
 }
 
 // ─── Fila de totales ─────────────────────────────────────────────────────────
-function TotalsRow({ expenses }: { expenses: Expense[] }) {
+function TotalsRow({ expenses, showIva }: { expenses: Expense[]; showIva: boolean }) {
   const totalARS = expenses
     .filter(e => e.type !== 'excluded' && e.type !== 'family_meli')
     .reduce((s, e) => s + e.amountARS, 0);
@@ -353,14 +365,14 @@ function TotalsRow({ expenses }: { expenses: Expense[] }) {
       <td className="td text-right text-gray-800" colSpan={2}>
         {formatARS(totalARS)}
       </td>
-      <td className="td text-right">
+      {showIva && <td className="td text-right">
         {totalIvaTracked > 0 ? (
           <span className="text-green-700 font-semibold font-mono text-xs">
             {formatARS(totalIvaTracked)}
             <span className="text-gray-400 font-normal ml-1">({trackedCount})</span>
           </span>
         ) : '—'}
-      </td>
+      </td>}
       <td className="td text-xs text-gray-400" colSpan={3}>
         {totalExcluded > 0 && `(+ ${formatARS(totalExcluded)} excluido)`}
       </td>
