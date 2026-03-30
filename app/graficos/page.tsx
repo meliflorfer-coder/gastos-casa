@@ -54,9 +54,16 @@ export default function GraficosPage() {
   const router = useRouter()
   const [data, setData] = useState<MonthData[]>([])
   const [allTxs, setAllTxs] = useState<any[]>([])
+  const [inflationRates, setInflationRates] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [fromYear, setFromYear] = useState('')
   const [toYear, setToYear] = useState('')
+
+  useEffect(() => {
+    fetch('/api/inflation').then(r => r.json()).then(rates => {
+      if (!rates.error) setInflationRates(rates)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch('/api/transactions?all=1')
@@ -137,6 +144,26 @@ export default function GraficosPage() {
   }))
   const hasUSD = filtered.some(d => d.totalUSD > 0)
 
+  // Inflación acumulada: para cada mes, calcular el factor para llevar a moneda del último mes
+  const sortedMonths = filtered.map(d => d.month).sort()
+  const baseMonth = sortedMonths[sortedMonths.length - 1] // mes más reciente = base
+  const inflationFactors: Record<string, number> = {}
+  for (const month of sortedMonths) {
+    // Multiplicar todos los factores (1 + r) desde este mes+1 hasta el base
+    let factor = 1
+    const monthsAfter = sortedMonths.filter(m => m > month)
+    for (const m of monthsAfter) {
+      factor *= 1 + (inflationRates[m] ?? 0)
+    }
+    inflationFactors[month] = factor
+  }
+  const hasInflationData = Object.keys(inflationRates).length > 0
+  const inflationChartData = filtered.map(d => ({
+    ...d,
+    label: d.month.slice(2),
+    totalAdjusted: Math.round(d.total * (inflationFactors[d.month] ?? 1)),
+  }))
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <p className="text-gray-500">Cargando datos...</p>
@@ -212,6 +239,30 @@ export default function GraficosPage() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Gasto ajustado por inflación */}
+        {hasInflationData && (
+          <div className="bg-white rounded-xl border shadow-sm p-5 mb-5">
+            <h2 className="font-semibold text-gray-800 mb-1">Gasto total mensual — ajustado por inflación</h2>
+            <p className="text-xs text-gray-400 mb-4">
+              Valores expresados en pesos de <strong>{baseMonth}</strong> · Inflación mensual INDEC (IPC)
+            </p>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={inflationChartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={filtered.length > 24 ? 5 : 1} />
+                <YAxis tickFormatter={fmtARS} tick={{ fontSize: 11 }} />
+                <Tooltip
+                  formatter={(v, name) => [fmtARS(Number(v)), name === 'totalAdjusted' ? 'Ajustado' : 'Nominal']}
+                  labelFormatter={l => `Mes: ${l}`}
+                />
+                <Legend formatter={name => name === 'totalAdjusted' ? `Ajustado (en $ de ${baseMonth})` : 'Nominal'} />
+                <Bar dataKey="total" fill="#93c5fd" radius={[3, 3, 0, 0]} name="total" />
+                <Bar dataKey="totalAdjusted" fill="#1d4ed8" radius={[3, 3, 0, 0]} name="totalAdjusted" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {/* Fede vs Meli */}
         <div className="bg-white rounded-xl border shadow-sm p-5 mb-5">
