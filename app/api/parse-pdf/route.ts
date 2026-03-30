@@ -56,7 +56,8 @@ Reglas:
 - Si tiene cuotas (ej: "3/6" o "cuota 3 de 6"), poné installment_number: 3 y installment_total: 6
 - Si no tiene cuotas, poné null en ambos campos
 - amount_ars y amount_usd son números sin símbolos ni puntos de miles (usar punto decimal)
-- NO incluyas totales, pagos previos, ni líneas de resumen — solo compras/consumos individuales
+- Incluí también impuestos, retenciones y percepciones cobradas por el banco (ej: impuesto a los débitos y créditos, retención AFIP, percepción IIBB, impuesto PAIS, sellos, etc.) — tratálos como una transacción más con su descripción exacta
+- NO incluyas totales generales, saldos, pagos de resúmenes de tarjeta ni líneas de resumen — solo movimientos individuales (compras, débitos, impuestos, comisiones)
 - Devolvé SOLO el JSON array, sin texto adicional ni explicaciones
 
 Texto del resumen:

@@ -28,7 +28,7 @@ const CATEGORY_KEYWORDS: { keywords: string[]; category: string }[] = [
   { keywords: ['universidad','colegio','escuela','instituto','curso','udemy','coursera','capacitacion','libros','libreria'], category: 'Educación' },
   { keywords: ['aeropuerto','aerolinea','latam','american','lufthansa','hotel','airbnb','booking','expedia','despegar','viaje','smiles'], category: 'Viajes' },
   { keywords: ['seguro','sancor seguros','zurich','mapfre','la caja','seguros '], category: 'Seguros' },
-  { keywords: ['afip','arba','agip','rentas','impuesto','sellado','tasa '], category: 'Impuestos' },
+  { keywords: ['afip','arba','agip','rentas','impuesto','sellado','tasa ','retencion','retención','percepcion','percepción','iibb','ingresos brutos','debitos y creditos','débitos y créditos','impuesto pais','impuesto país','sello','timbre','cobranza fiscal','recaudacion','recaudación'], category: 'Impuestos' },
 ]
 
 function inferCategory(desc: string): string | null {
