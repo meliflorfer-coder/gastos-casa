@@ -13,6 +13,14 @@ interface IvaDocument {
   created_at: string
 }
 
+interface IvaTx {
+  id: string
+  description: string
+  amount_ars: number
+  card: string
+  date: string
+}
+
 const fmtARS = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`
 
 export default function IvaPage() {
@@ -24,6 +32,7 @@ export default function IvaPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
   const [docs, setDocs] = useState<IvaDocument[]>([])
+  const [ivaTxs, setIvaTxs] = useState<IvaTx[]>([])
   const [months, setMonths] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -45,18 +54,22 @@ export default function IvaPage() {
       })
   }, [])
 
-  // Load docs for selected month
+  // Load docs and has_iva transactions for selected month
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/iva-documents?month=${selectedMonth}`)
-      .then(r => r.json())
-      .then(data => {
-        setDocs(data || [])
-        setLoading(false)
-      })
+    Promise.all([
+      fetch(`/api/iva-documents?month=${selectedMonth}`).then(r => r.json()),
+      fetch(`/api/transactions?month=${selectedMonth}`).then(r => r.json()),
+    ]).then(([docsData, txsData]) => {
+      setDocs(docsData || [])
+      setIvaTxs((txsData || []).filter((t: any) => t.has_iva && t.include && t.assignment !== 'ignorar'))
+      setLoading(false)
+    })
   }, [selectedMonth])
 
-  const totalIva = docs.reduce((s, d) => s + (d.iva_amount || 0), 0)
+  const totalIvaDocs = docs.reduce((s, d) => s + (d.iva_amount || 0), 0)
+  const totalIvaTxs = ivaTxs.reduce((s, t) => s + Math.round(t.amount_ars * 21 / 121), 0)
+  const totalIva = totalIvaDocs + totalIvaTxs
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files?.length) return
@@ -255,14 +268,49 @@ export default function IvaPage() {
           )}
         </div>
 
+        {/* Transacciones marcadas con has_iva */}
+        {!loading && ivaTxs.length > 0 && (
+          <div className="bg-white rounded-xl border shadow-sm overflow-hidden mb-5">
+            <div className="px-4 py-3 bg-orange-50 border-b">
+              <p className="text-sm font-semibold text-orange-800">Transacciones marcadas en revisión</p>
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">Descripción</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">Tarjeta</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">Importe</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">IVA 21%</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {ivaTxs.map(t => (
+                  <tr key={t.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 text-gray-800">{t.description}</td>
+                    <td className="px-4 py-2 text-gray-500 text-xs">{t.card}</td>
+                    <td className="px-4 py-2 text-right text-gray-700">{fmtARS(t.amount_ars)}</td>
+                    <td className="px-4 py-2 text-right font-medium text-orange-700">{fmtARS(Math.round(t.amount_ars * 21 / 121))}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50 border-t">
+                <tr>
+                  <td colSpan={3} className="px-4 py-2 text-sm font-semibold text-gray-700">Subtotal</td>
+                  <td className="px-4 py-2 text-right font-bold text-orange-800">{fmtARS(totalIvaTxs)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+
         {/* Documents list */}
         {loading ? (
           <div className="text-center py-8 text-gray-400 text-sm">Cargando...</div>
-        ) : docs.length === 0 ? (
+        ) : docs.length === 0 && ivaTxs.length === 0 ? (
           <div className="bg-white border rounded-xl p-8 text-center text-gray-400 text-sm">
             No hay documentos para {selectedMonth}
           </div>
-        ) : (
+        ) : docs.length > 0 ? (
           <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
@@ -325,7 +373,7 @@ export default function IvaPage() {
               </tfoot>
             </table>
           </div>
-        )}
+        ) : null}
       </div>
     </main>
   )
