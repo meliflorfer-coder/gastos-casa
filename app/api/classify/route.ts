@@ -73,31 +73,40 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Aplicar clasificación a las nuevas transacciones
+  // Construir todos los updates en memoria, luego hacer 1-2 upserts
+  const fullUpdates: any[] = []
+  const categoryUpdates: any[] = []
   let classified = 0
+
   for (const tx of newTxs) {
     const key = normalize(tx.description)
     const match = classMap.get(key)
 
     if (match) {
-      const updatePayload: Record<string, any> = {
+      const cat = match.category || inferCategory(tx.description)
+      fullUpdates.push({
+        ...tx,
         assignment: match.assignment,
         include: match.include,
         has_iva: match.has_iva,
         user_reviewed: false,
-      }
-      // Categoría: primero del historial, sino inferir por keywords
-      const cat = match.category || inferCategory(tx.description)
-      if (cat) updatePayload.category = cat
-      await supabase.from('transactions').update(updatePayload).eq('id', tx.id)
+        ...(cat ? { category: cat } : {}),
+      })
       classified++
     } else {
-      // Sin historial: solo inferir categoría si se puede
       const cat = inferCategory(tx.description)
       if (cat) {
-        await supabase.from('transactions').update({ category: cat }).eq('id', tx.id)
+        categoryUpdates.push({ ...tx, category: cat })
       }
     }
+  }
+
+  // Un upsert por grupo en lugar de N PATCH individuales
+  if (fullUpdates.length > 0) {
+    await supabase.from('transactions').upsert(fullUpdates)
+  }
+  if (categoryUpdates.length > 0) {
+    await supabase.from('transactions').upsert(categoryUpdates)
   }
 
   return NextResponse.json({ classified, total: newTxs.length })

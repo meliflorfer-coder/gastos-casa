@@ -15,6 +15,10 @@ interface MonthData {
   shared: number
   count: number
   net: number // positive = meli owes fede, negative = fede owes meli
+  totalUSD: number
+  fedeUSD: number
+  meliUSD: number
+  sharedUSD: number
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -62,12 +66,21 @@ export default function GraficosPage() {
         const map = new Map<string, MonthData>()
         for (const t of txs) {
           if (!t.include || t.assignment === 'ignorar' || t.assignment === 'familia_meli') continue
-          if (t.amount_usd > 0) continue
 
           if (!map.has(t.month)) {
-            map.set(t.month, { month: t.month, total: 0, fede: 0, meli: 0, shared: 0, count: 0, net: 0 })
+            map.set(t.month, { month: t.month, total: 0, fede: 0, meli: 0, shared: 0, count: 0, net: 0, totalUSD: 0, fedeUSD: 0, meliUSD: 0, sharedUSD: 0 })
           }
           const row = map.get(t.month)!
+
+          if (t.amount_usd > 0) {
+            const usd = t.amount_usd || 0
+            row.totalUSD += usd
+            if (t.assignment === 'fede') row.fedeUSD += usd
+            else if (t.assignment === 'meli') row.meliUSD += usd
+            else if (t.assignment === 'ambos') row.sharedUSD += usd
+            continue
+          }
+
           const ars = t.amount_ars || 0
           row.count++
           row.total += ars
@@ -119,7 +132,10 @@ export default function GraficosPage() {
     label: d.month.slice(2), // "2024-03" → "24-03"
     fedeTotal: Math.round(d.fede + d.shared / 2),
     meliTotal: Math.round(d.meli + d.shared / 2),
+    fedeTotalUSD: +(d.fedeUSD + d.sharedUSD / 2).toFixed(2),
+    meliTotalUSD: +(d.meliUSD + d.sharedUSD / 2).toFixed(2),
   }))
+  const hasUSD = filtered.some(d => d.totalUSD > 0)
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -246,6 +262,25 @@ export default function GraficosPage() {
                     <Cell key={entry.name} fill={CATEGORY_COLORS[entry.name] || '#3b82f6'} />
                   ))}
                 </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Gastos en USD */}
+        {hasUSD && (
+          <div className="bg-white rounded-xl border shadow-sm p-5 mb-5">
+            <h2 className="font-semibold text-gray-800 mb-1">Gastos en USD por mes</h2>
+            <p className="text-xs text-gray-400 mb-4">Solo transacciones con amount_usd {'>'} 0</p>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={chartData.filter(d => d.totalUSD > 0)} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis tickFormatter={v => `$${v}`} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v) => `USD ${Number(v).toFixed(2)}`} />
+                <Legend />
+                <Bar dataKey="fedeTotalUSD" fill={COLORS.fede} name="Fede USD" stackId="a" />
+                <Bar dataKey="meliTotalUSD" fill={COLORS.meli} name="Meli USD" stackId="a" />
               </BarChart>
             </ResponsiveContainer>
           </div>

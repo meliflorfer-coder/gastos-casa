@@ -32,6 +32,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El PDF no tiene texto legible' }, { status: 400 })
     }
 
+    const MAX_CHARS = 80000
+    const truncated = pdfText.length > MAX_CHARS
+    const textToSend = pdfText.substring(0, MAX_CHARS)
+
     const prompt = `Analizá este texto de un resumen de tarjeta de crédito o cuenta bancaria argentina.
 Extraé TODAS las transacciones/movimientos y devolvé un JSON array con este formato exacto:
 
@@ -56,7 +60,7 @@ Reglas:
 - Devolvé SOLO el JSON array, sin texto adicional ni explicaciones
 
 Texto del resumen:
-${pdfText.substring(0, 15000)}`
+${textToSend}`
 
     console.log('Llamando a Gemini REST API...')
     const response = await fetch(GEMINI_URL, {
@@ -106,7 +110,7 @@ ${pdfText.substring(0, 15000)}`
     }))
 
     console.log(`Transacciones extraídas: ${transactions.length}`)
-    return NextResponse.json({ transactions })
+    return NextResponse.json({ transactions, truncated, originalLength: pdfText.length })
 
   } catch (error: any) {
     console.error('Error general:', error)

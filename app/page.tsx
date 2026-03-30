@@ -53,6 +53,20 @@ export default function Home() {
   })
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState('')
+  const [warnings, setWarnings] = useState<string[]>([])
+  const [darkMode, setDarkMode] = useState(false)
+
+  useEffect(() => {
+    const isDark = document.documentElement.getAttribute('data-dark') === 'true'
+    setDarkMode(isDark)
+  }, [])
+
+  const toggleDark = () => {
+    const next = !darkMode
+    setDarkMode(next)
+    document.documentElement.setAttribute('data-dark', String(next))
+    try { localStorage.setItem('dark-mode', String(next)) } catch {}
+  }
   const [manualRows, setManualRows] = useState([{ ...EMPTY_MANUAL }])
   const [existingCount, setExistingCount] = useState<number | null>(null)
   const [pendingCount, setPendingCount] = useState(0)
@@ -120,6 +134,7 @@ export default function Home() {
   const doProcess = async (replaceExisting: boolean) => {
     setLoading(true)
     setConfirmReplace(false)
+    setWarnings([])
 
     if (replaceExisting) {
       setProgress('Eliminando transacciones anteriores del mes...')
@@ -138,8 +153,14 @@ export default function Home() {
         const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData })
         const data = await res.json()
         if (data.transactions) allTransactions.push(...data.transactions)
-      } catch (err) {
-        console.error(`Error procesando ${file.name}:`, err)
+        if (data.truncated) {
+          setWarnings(prev => [...prev, `⚠ "${file.name}" es muy largo — se analizaron los primeros ${Math.round(data.originalLength / 1000)}K caracteres. Puede que falten transacciones del final.`])
+        }
+        if (!res.ok || data.error) {
+          setWarnings(prev => [...prev, `✕ Error en "${file.name}": ${data.error || 'Error desconocido'}`])
+        }
+      } catch (err: any) {
+        setWarnings(prev => [...prev, `✕ Error procesando "${file.name}": ${err.message}`])
       }
     }
 
@@ -208,7 +229,7 @@ export default function Home() {
       {/* Top bar */}
       <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Gastos Casa</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <button onClick={() => router.push('/historial')} className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100">
             Historial
           </button>
@@ -220,6 +241,13 @@ export default function Home() {
           </button>
           <button onClick={() => router.push('/cuotas')} className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100">
             Cuotas
+          </button>
+          <button
+            onClick={toggleDark}
+            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100"
+            title={darkMode ? 'Modo claro' : 'Modo oscuro'}
+          >
+            {darkMode ? '☀️' : '🌙'}
           </button>
         </div>
       </div>
@@ -376,6 +404,17 @@ export default function Home() {
             >
               {loading ? processLabel : `Procesar ${processLabel}`}
             </button>
+
+            {/* Advertencias */}
+            {warnings.length > 0 && (
+              <div className="space-y-2 mb-4">
+                {warnings.map((w, i) => (
+                  <div key={i} className={`text-sm px-4 py-3 rounded-lg ${w.startsWith('✕') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-yellow-50 text-yellow-800 border border-yellow-200'}`}>
+                    {w}
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
 

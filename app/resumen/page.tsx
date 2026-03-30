@@ -28,9 +28,12 @@ function ResumenContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [monthRecord, setMonthRecord] = useState<MonthRecord | null>(null)
   const [carryoverARS, setCarryoverARS] = useState(0)
-  const [ivaTotal, setIvaTotal] = useState(0)
+  const [ivaDocTotal, setIvaDocTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [transfers, setTransfers] = useState<{ id: string; amount_ars: number; amount_usd: number; direction: string; paid_at: string; notes: string }[]>([])
+  const [showTransferForm, setShowTransferForm] = useState(false)
+  const [transferNotes, setTransferNotes] = useState('')
 
   useEffect(() => {
     if (!month) return
@@ -44,10 +47,14 @@ function ResumenContent() {
         setMonthRecord(monthData)
         setCarryoverARS(monthData.previous_debt_ars || 0)
       }
-      const totalIva = (ivaDocs || []).reduce((s: number, d: any) => s + (d.iva_amount || 0), 0)
-      setIvaTotal(totalIva)
+      setIvaDocTotal((ivaDocs || []).reduce((s: number, d: any) => s + (d.iva_amount || 0), 0))
       setLoading(false)
     })
+    // Load transfers from localStorage
+    try {
+      const stored = localStorage.getItem(`transfers-${month}`)
+      if (stored) setTransfers(JSON.parse(stored))
+    } catch {}
   }, [month])
 
   const included = transactions.filter(t => t.include && t.assignment !== 'ignorar' && t.assignment !== 'familia_meli')
@@ -65,6 +72,8 @@ function ResumenContent() {
   const sharedUSD = usdItems.filter(t => t.assignment === 'ambos').reduce((s, t) => s + t.amount_usd, 0)
 
   const familyMeliTotal = transactions.filter(t => t.include && t.assignment === 'familia_meli').reduce((s, t) => s + t.amount_ars, 0)
+  const ivaTxsTotal = transactions.filter(t => t.has_iva && t.include && t.assignment !== 'ignorar').reduce((s, t) => s + Math.round(t.amount_ars * 21 / 121), 0)
+  const ivaTotal = ivaDocTotal + ivaTxsTotal
 
   // ── Cálculo de transferencia neta (ARS) ──────────────────────────────────
   // Por cada transacción se determina quién pagó (tarjeta) y a quién corresponde.
@@ -136,14 +145,49 @@ function ResumenContent() {
     setSaving(false)
   }
 
+  const saveTransfer = () => {
+    const id = crypto.randomUUID()
+    const newTransfer = {
+      id,
+      amount_ars: transferAmountARS,
+      amount_usd: transferAmountUSD,
+      direction: transferDirectionARS,
+      paid_at: new Date().toISOString(),
+      notes: transferNotes,
+    }
+    const updated = [newTransfer, ...transfers]
+    setTransfers(updated)
+    localStorage.setItem(`transfers-${month}`, JSON.stringify(updated))
+    setShowTransferForm(false)
+    setTransferNotes('')
+  }
+
+  const deleteTransfer = (id: string) => {
+    const updated = transfers.filter(t => t.id !== id)
+    setTransfers(updated)
+    localStorage.setItem(`transfers-${month}`, JSON.stringify(updated))
+  }
+
   const exportCSV = () => {
-    const headers = ['Fecha', 'Tarjeta', 'Descripción', 'Importe ARS', 'Importe USD', 'Cuota', 'Asignación', 'IVA', 'Incluido']
-    const rows = transactions.map(t => [
+    const txHeaders = ['Fecha', 'Tarjeta', 'Descripción', 'Importe ARS', 'Importe USD', 'Cuota', 'Asignación', 'IVA', 'Incluido']
+    const txRows = transactions.map(t => [
       t.date, t.card, t.description, t.amount_ars, t.amount_usd || '',
       t.installment_number ? `${t.installment_number}/${t.installment_total}` : '',
       t.assignment, t.has_iva ? 'SI' : 'NO', t.include ? 'SI' : 'NO',
     ])
-    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+    const summaryRows = [
+      [],
+      ['RESUMEN DEL MES', month],
+      ['Total Fede ARS', Math.round(fedeARS + sharedARS / 2)],
+      ['Total Meli ARS', Math.round(meliARS + sharedARS / 2)],
+      ['Total compartido ARS', Math.round(sharedARS)],
+      ['IVA total', Math.round(ivaTotal)],
+      ['Deuda anterior ARS', carryoverARS],
+      [transferDirectionARS === 'meli→fede' ? 'Meli transfiere a Fede (ARS)' : 'Fede transfiere a Meli (ARS)', Math.round(transferAmountARS)],
+      ...(transferAmountUSD > 0 ? [[transferDirectionUSD === 'meli→fede' ? 'Meli transfiere a Fede (USD)' : 'Fede transfiere a Meli (USD)', transferAmountUSD.toFixed(2)]] : []),
+    ]
+    const allRows = [txHeaders, ...txRows, ...summaryRows]
+    const csv = allRows.map(r => r.map(v => `"${v}"`).join(',')).join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -366,6 +410,56 @@ function ResumenContent() {
             <div className="flex justify-between items-center pt-1">
               <span className="text-sm font-semibold text-gray-800">Total USD</span>
               <span className="text-sm font-bold text-gray-900">{fmtUSD(fedeUSD + meliUSD + sharedUSD)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Historial de transferencias */}
+        <div className="bg-white rounded-xl border shadow-sm p-5 mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-800">Transferencias realizadas</h2>
+            {!showTransferForm && (
+              <button
+                onClick={() => setShowTransferForm(true)}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                + Registrar transferencia
+              </button>
+            )}
+          </div>
+          {showTransferForm && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-3 flex gap-3 items-end">
+              <div className="flex-1">
+                <p className="text-xs text-gray-500 mb-1">Monto calculado: {fmtARS(transferAmountARS)}{transferAmountUSD > 0 ? ` · ${fmtUSD(transferAmountUSD)}` : ''}</p>
+                <input
+                  type="text"
+                  placeholder="Notas (opcional)"
+                  value={transferNotes}
+                  onChange={e => setTransferNotes(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button onClick={saveTransfer} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+                Guardar
+              </button>
+              <button onClick={() => setShowTransferForm(false)} className="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
+                Cancelar
+              </button>
+            </div>
+          )}
+          {transfers.length === 0 ? (
+            <p className="text-sm text-gray-400">No hay transferencias registradas para este mes.</p>
+          ) : (
+            <div className="space-y-2">
+              {transfers.map(t => (
+                <div key={t.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{fmtARS(t.amount_ars)}{t.amount_usd > 0 ? ` · ${fmtUSD(t.amount_usd)}` : ''} — {t.direction === 'meli→fede' ? 'Meli → Fede' : 'Fede → Meli'}</p>
+                    <p className="text-xs text-gray-400">{new Date(t.paid_at).toLocaleDateString('es-AR')}{t.notes ? ` · ${t.notes}` : ''}</p>
+                  </div>
+                  <button onClick={() => deleteTransfer(t.id)} className="text-gray-300 hover:text-red-500 text-lg leading-none">×</button>
+                </div>
+              ))}
             </div>
           )}
         </div>

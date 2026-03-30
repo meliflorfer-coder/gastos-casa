@@ -268,6 +268,13 @@ export default function IvaPage() {
           )}
         </div>
 
+        {/* Advertencia doble conteo */}
+        {!loading && ivaTxs.length > 0 && docs.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 text-sm px-4 py-3 rounded-lg mb-5">
+            ⚠ Tenés transacciones marcadas con IVA <strong>y</strong> facturas subidas. Verificá que no estés contando el mismo IVA dos veces.
+          </div>
+        )}
+
         {/* Transacciones marcadas con has_iva */}
         {!loading && ivaTxs.length > 0 && (
           <div className="bg-white rounded-xl border shadow-sm overflow-hidden mb-5">

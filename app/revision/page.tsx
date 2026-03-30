@@ -4,6 +4,25 @@ import { useEffect, useState, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Transaction, Assignment, CATEGORIES } from '@/lib/types'
 
+function useCategories() {
+  const [custom, setCustom] = useState<string[]>([])
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('custom-categories')
+      if (stored) setCustom(JSON.parse(stored))
+    } catch {}
+  }, [])
+  const all = [...CATEGORIES, ...custom.filter(c => !CATEGORIES.includes(c))]
+  const add = (cat: string) => {
+    const trimmed = cat.trim()
+    if (!trimmed || CATEGORIES.includes(trimmed) || custom.includes(trimmed)) return
+    const updated = [...custom, trimmed]
+    setCustom(updated)
+    localStorage.setItem('custom-categories', JSON.stringify(updated))
+  }
+  return { categories: all, addCategory: add }
+}
+
 const ASSIGNMENTS: { value: Assignment; label: string; color: string }[] = [
   { value: 'ambos', label: 'Ambos', color: 'bg-blue-100 text-blue-800' },
   { value: 'fede', label: 'Fede', color: 'bg-green-100 text-green-800' },
@@ -24,6 +43,10 @@ function RevisionContent() {
   const [filterPending, setFilterPending] = useState(false)
   const [filterCategory, setFilterCategory] = useState('')
   const [saving, setSaving] = useState<string | null>(null)
+  const [classifying, setClassifying] = useState(false)
+  const [newCategory, setNewCategory] = useState('')
+  const [showAddCategory, setShowAddCategory] = useState(false)
+  const { categories, addCategory } = useCategories()
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [focusedRow, setFocusedRow] = useState(0)
@@ -69,6 +92,22 @@ function RevisionContent() {
   const deleteTransaction = async (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id))
     await fetch(`/api/transactions?id=${id}`, { method: 'DELETE' })
+  }
+
+  const reApplyClassify = async () => {
+    setClassifying(true)
+    const ids = transactions.filter(t => !t.user_reviewed).map(t => t.id).filter(Boolean) as string[]
+    if (ids.length > 0) {
+      await fetch('/api/classify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month, ids }),
+      })
+      // Reload transactions
+      const data = await fetch(`/api/transactions?month=${month}`).then(r => r.json())
+      setTransactions(data || [])
+    }
+    setClassifying(false)
   }
 
   const bulkAssign = async (assignment: Assignment) => {
@@ -227,7 +266,7 @@ function RevisionContent() {
             className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todas las categorías</option>
-            {CATEGORIES.filter(c => c).map(c => <option key={c}>{c}</option>)}
+            {categories.filter(c => c).map(c => <option key={c}>{c}</option>)}
           </select>
           <button
             onClick={() => setFilterPending(!filterPending)}
@@ -242,6 +281,37 @@ function RevisionContent() {
               {a.label}
             </button>
           ))}
+          <div className="w-full border-t pt-3 flex flex-wrap gap-2 items-center">
+            <button
+              onClick={reApplyClassify}
+              disabled={classifying}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50"
+            >
+              {classifying ? 'Clasificando...' : '↺ Re-aplicar clasificación automática'}
+            </button>
+            {!showAddCategory ? (
+              <button
+                onClick={() => setShowAddCategory(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 text-gray-600 hover:bg-gray-50"
+              >
+                + Nueva categoría
+              </button>
+            ) : (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={e => setNewCategory(e.target.value)}
+                  placeholder="Nombre de categoría"
+                  className="border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  onKeyDown={e => { if (e.key === 'Enter') { addCategory(newCategory); setNewCategory(''); setShowAddCategory(false) } if (e.key === 'Escape') setShowAddCategory(false) }}
+                  autoFocus
+                />
+                <button onClick={() => { addCategory(newCategory); setNewCategory(''); setShowAddCategory(false) }} className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg">Agregar</button>
+                <button onClick={() => setShowAddCategory(false)} className="text-xs text-gray-400 hover:text-gray-600">×</button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tabla */}
@@ -353,7 +423,7 @@ function RevisionContent() {
                         className="text-xs border rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-28"
                       >
                         <option value="">—</option>
-                        {CATEGORIES.filter(c => c).map(c => <option key={c}>{c}</option>)}
+                        {categories.filter(c => c).map(c => <option key={c}>{c}</option>)}
                       </select>
                     </td>
                     <td className="px-3 py-2.5 text-center" onClick={e => e.stopPropagation()}>

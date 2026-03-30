@@ -24,3 +24,45 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── Dark mode ─────────────────────────────────────────────────────────── */
+html[data-dark="true"] { color-scheme: dark; }
+html[data-dark="true"] body { background-color: #0f172a; color: #e2e8f0; }
+
+html[data-dark="true"] .bg-gray-50  { background-color: #0f172a !important; }
+html[data-dark="true"] .bg-white    { background-color: #1e293b !important; }
+html[data-dark="true"] .bg-gray-100 { background-color: #334155 !important; }
+
+html[data-dark="true"] .text-gray-900 { color: #f1f5f9 !important; }
+html[data-dark="true"] .text-gray-800 { color: #e2e8f0 !important; }
+html[data-dark="true"] .text-gray-700 { color: #cbd5e1 !important; }
+html[data-dark="true"] .text-gray-600 { color: #94a3b8 !important; }
+html[data-dark="true"] .text-gray-500 { color: #64748b !important; }
+html[data-dark="true"] .text-gray-400 { color: #475569 !important; }
+
+html[data-dark="true"] .border,
+html[data-dark="true"] .border-b,
+html[data-dark="true"] .border-t   { border-color: #334155 !important; }
+html[data-dark="true"] .border-gray-200,
+html[data-dark="true"] .border-gray-300 { border-color: #334155 !important; }
+
+html[data-dark="true"] .divide-y > * + *,
+html[data-dark="true"] .divide-gray-100 > * + * { border-color: #334155 !important; }
+
+html[data-dark="true"] .hover\:bg-gray-50:hover  { background-color: #1e293b !important; }
+html[data-dark="true"] .hover\:bg-gray-100:hover { background-color: #334155 !important; }
+
+html[data-dark="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="month"]):not([type="date"]):not([type="number"]),
+html[data-dark="true"] input[type="number"],
+html[data-dark="true"] input[type="month"],
+html[data-dark="true"] input[type="date"],
+html[data-dark="true"] select,
+html[data-dark="true"] textarea {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+html[data-dark="true"] table thead tr { background-color: #1e293b !important; }
+html[data-dark="true"] tfoot tr       { background-color: #1e293b !important; }
+html[data-dark="true"] .shadow-sm     { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.4) !important; }
